@@ -46,8 +46,8 @@ public class SearchServlet extends HttpServlet {
 					"PREFIX mooc:<http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
 					"SELECT *\n" +
 					"WHERE {"+
-					"?person rdf:type mooc:Category .\n" +
-					"?person mooc:categoryName ?name ." +
+					"?Course rdf:type mooc:Category .\n" +
+					"?Course mooc:categoryName ?name ." +
 					"}";
 
 			Query query = QueryFactory.create(queryString) ;
