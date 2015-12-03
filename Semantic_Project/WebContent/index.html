@@ -6,8 +6,13 @@
 </head>
 <body>
 	<form action="search" method="post">
-		<input type="text" id="searchQuery" name="searchBox"  placeholder="Course Name">
-		<input type="submit" value="Search" id="searchBtn"> 
+		<input type="text" id="searchQuery" name="searchBox" /> 
+		<select id="searchBy" name="searchBy">
+			<!-- <option value="price" name="price">Price</option> -->
+			<option value="desc">Description</option>
+			<option value="name">Course Name</option>
+		</select> 
+		<input type="submit" value="Search" id="searchBtn">
 	</form>
 </body>
 </html>

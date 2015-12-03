@@ -41,17 +41,17 @@ public class SearchServlet extends HttpServlet {
 		}
 	}
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		String searchParameter;
+		String searchParameter,searchBy;
 
+		searchBy = request.getParameter("searchBy");
 		searchParameter = request.getParameter("searchBox");
-		
 
+		
 		if(searchParameter==null) {
 			// Send back to home page
 			try {
 				response.sendRedirect("index.html");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return;
@@ -60,7 +60,7 @@ public class SearchServlet extends HttpServlet {
 			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
 			for(int i=0;i<url.length;i++){
 				loadData(url[i]);
-				fw.write(basicRun(searchParameter,_model));
+				fw.write(basicRun(searchBy,searchParameter,_model));
 			}
 			System.out.println("Done");
 			fw.close();
@@ -126,17 +126,17 @@ public class SearchServlet extends HttpServlet {
 			return;
 		}*/
 	}
-	private String basicRun(String parameter,Model _model) {
-		return runQuery(parameter,_model);
+	private String basicRun(String searchBy,String searchParameter,Model _model) {
+		return runQuery(searchBy,searchParameter,_model);
 
 	}
-	private String runQuery(String parameter, Model _model2) {
+	private String runQuery(String searchBy,String searchParameter, Model _model2) {
 		String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
 				"SELECT DISTINCT ?name ?courseProvider ?courseLink ?desc\n" +
 				"WHERE {"+
 				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; "
 				+ "edu:courseDescription ?desc.\n" +
-				"FILTER regex(?name ,\""+parameter+"\", \"i\")\n" +
+				"FILTER regex(?"+searchBy+" ,\""+searchParameter+"\", \"i\")\n" +
 				"}";
 		String json="";
 		Query query = QueryFactory.create(queryString.toString());
