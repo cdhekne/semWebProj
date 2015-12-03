@@ -44,9 +44,12 @@ public class SearchServlet extends HttpServlet {
 		String searchParameter,searchBy;
 
 		searchBy = request.getParameter("searchBy");
-		searchParameter = request.getParameter("searchBox");
+		if(searchBy.equals("price")==true)
+			searchParameter="free";
+		else
+			searchParameter = request.getParameter("searchBox");
 
-		
+
 		if(searchParameter==null) {
 			// Send back to home page
 			try {
@@ -60,7 +63,11 @@ public class SearchServlet extends HttpServlet {
 			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
 			for(int i=0;i<url.length;i++){
 				loadData(url[i]);
-				fw.write(basicRun(searchBy,searchParameter,_model));
+				if(searchBy.equals("price")==true){
+					fw.write(runQueryForFreeCourses(searchBy,searchParameter,_model));
+				}
+				else
+					fw.write(basicRun(searchBy,searchParameter,_model));
 			}
 			System.out.println("Done");
 			fw.close();
@@ -126,8 +133,65 @@ public class SearchServlet extends HttpServlet {
 			return;
 		}*/
 	}
+
 	private String basicRun(String searchBy,String searchParameter,Model _model) {
-		return runQuery(searchBy,searchParameter,_model);
+		if(searchBy.equals("price")==true)
+			return runQueryForFreeCourses(searchBy,searchParameter,_model);
+		else
+			return runQuery(searchBy,searchParameter,_model);
+	}
+	private String runQueryForFreeCourses(String searchBy, String searchParameter, Model _model2) {
+		String queryString="PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>"+
+
+"SELECT ?name ?courseProvider ?courseLink ?desc ?duration ?price ?type ?tname"+
+
+"WHERE {"+
+"?course edu:coursePricing ?price."+
+"?course edu:courseName ?name."+
+
+  "?course edu:courseProvider ?courseProvider."+
+
+  "?course edu:courseLink ?courseLink."+
+
+  "?course edu:courseDescription ?desc."+
+
+  "OPTIONAL{"+
+  "?course edu:courseDuration ?duration."+
+
+    "?course edu:courseType ?type."+
+    "?course edu:teacherName ?tname."+
+    "}"+
+
+  "FILTER regex(?"+searchBy+" , \""+searchParameter+"\", \"i\")"+
+  "}";
+		String json="";
+		Query query = QueryFactory.create(queryString.toString());
+		QueryExecution queryExecution = QueryExecutionFactory.create(query,_model2);
+		try{
+			ResultSet response = queryExecution.execSelect();
+
+			while( response.hasNext())
+			{
+				HashMap<String, String> j = new HashMap<String, String>();
+				Gson gson = new Gson();
+				QuerySolution soln = response.nextSolution();
+				RDFNode name = soln.get("?name");
+				RDFNode courseProvider = soln.get("?courseProvider");
+				RDFNode courseLink = soln.get("?courseLink");
+				RDFNode desc = soln.get("?desc");
+				j.put("name", name.toString());
+				j.put("courseProvider", courseProvider.toString());
+				j.put("courseLink", courseLink.toString());
+				j.put("desc", desc.toString());
+				json += "\n"+gson.toJson(j);
+			}
+
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		queryExecution.close();
+		return json;
 
 	}
 	private String runQuery(String searchBy,String searchParameter, Model _model2) {
@@ -159,7 +223,7 @@ public class SearchServlet extends HttpServlet {
 				j.put("desc", desc.toString());
 				json += "\n"+gson.toJson(j);
 			}
-			
+
 		}
 		catch(Exception e){
 			e.printStackTrace();
