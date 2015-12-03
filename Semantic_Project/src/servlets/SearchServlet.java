@@ -16,6 +16,7 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.sparql.mgt.QueryEngineInfo;
 
@@ -24,39 +25,51 @@ import org.apache.jena.sparql.mgt.QueryEngineInfo;
  */
 public class SearchServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	private static final String url = "http://cdhekne.github.io/khan_acad.ttl";
+	private static final String[] url = {"http://cdhekne.github.io/khan_acad.ttl", "http://cdhekne.github.io/tuts_video.ttl", "http://cdhekne.github.io/tuts_tutorials.ttl", "http://cdhekne.github.io/ocw.ttl"};
 	private static final String db = "http://demo.openlinksw.com/sparql";
-	private final OntModel m = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
-	private QueryEngineInfo qi = new QueryEngineInfo();
+	//	private final OntModel m = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
+//	private QueryEngineInfo qi = new QueryEngineInfo();
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String searchParameter;
 
-		searchParameter = request.getParameter("keyword");
+		searchParameter = request.getParameter("searchBox");
 
-		if(searchParameter.isEmpty()) {
+		if(searchParameter==null) {
 			// Send back to home page
-			response.sendRedirect("index.jsp");
+			response.sendRedirect("index.html");
 			return;
 		}
 		else {
-			m.read(url, "TURTLE");
+			for(int i=0;i<url.length;i++){
+				OntModel m = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
+				m.removeAll();
+				m.read(url[i], "TURTLE");
 
-			String queryString = "PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
-					"PREFIX mooc:<http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
-					"SELECT *\n" +
-					"WHERE {"+
-					"?Course rdf:type mooc:Category .\n" +
-					"?Course mooc:categoryName ?name ." +
-					"}";
-
-			Query query = QueryFactory.create(queryString) ;
-			QueryExecution qexec = QueryExecutionFactory.sparqlService(db, query);
-			ResultSet rs = qexec.execSelect();
-			while(rs.hasNext()){
-				QuerySolution qs = rs.next();
-				System.out.println(qs.get("Course"));
-				System.out.println(qs.get("name"));
+				String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
+						"SELECT DISTINCT ?name ?courseProvider ?courseLink ?desc\n" +
+						"WHERE {"+
+						"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; "
+						+ "edu:courseDescription ?desc.\n" +
+						"FILTER regex(?desc , \""+searchParameter+"\", \"i\")\n" +
+						"}";
+				//				System.out.println(queryString);
+				Query query = QueryFactory.create(queryString) ;
+				QueryExecution qexec = QueryExecutionFactory.sparqlService(db, query);
+				ResultSet rs = qexec.execSelect();
+				while(rs.hasNext()){
+					QuerySolution qs = rs.nextSolution();
+					Literal name = qs.getLiteral("name");
+					Literal courseProvider = qs.getLiteral("courseProvider");
+					Literal courseLink = qs.getLiteral("courseLink");
+					Literal desc = qs.getLiteral("desc");
+					System.out.println(name + "\n" + courseLink + "\n" + courseProvider + "\n" + desc +"\n\n");
+					//					System.out.println(qs.get("courseProvider"));
+					//					System.out.println(qs.get("courseLink"));
+					//					System.out.println(qs.get("desc"));
+				}
+				qexec.close();
+				m.close();
 			}
 
 			return;
