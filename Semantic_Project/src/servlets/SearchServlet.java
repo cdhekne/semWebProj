@@ -1,49 +1,77 @@
 package servlets;
 
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.jena.ontology.OntModel;
-import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.Literal;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.sparql.mgt.QueryEngineInfo;
+import org.apache.jena.rdf.model.RDFNode;
+
+import com.google.gson.Gson;
 
 /**
  * Servlet implementation class SearchServlet
  */
 public class SearchServlet extends HttpServlet {
+	Model _model = null;
+	Model schema = null;
 	private static final long serialVersionUID = 1L;
-	private static final String[] url = {"http://cdhekne.github.io/khan_acad.ttl", "http://cdhekne.github.io/tuts_video.ttl", "http://cdhekne.github.io/tuts_tutorials.ttl", "http://cdhekne.github.io/ocw.ttl"};
-	private static final String db = "http://demo.openlinksw.com/sparql";
-	//	private final OntModel m = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
-//	private QueryEngineInfo qi = new QueryEngineInfo();
 
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	String[] url = {"http://cdhekne.github.io/khan_acad.ttl", "http://cdhekne.github.io/tuts_video.ttl", "http://cdhekne.github.io/tuts_tutorials.ttl", "http://cdhekne.github.io/ocw.ttl"};
+
+	public void loadData(String url){
+		_model = ModelFactory.createOntologyModel();
+		try{
+			_model.read(url,"TURTLE");
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String searchParameter;
 
 		searchParameter = request.getParameter("searchBox");
+		
 
 		if(searchParameter==null) {
 			// Send back to home page
-			response.sendRedirect("index.html");
+			try {
+				response.sendRedirect("index.html");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return;
 		}
-		else {
+		else{
+			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
 			for(int i=0;i<url.length;i++){
-				OntModel m = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
-				m.removeAll();
+				loadData(url[i]);
+				fw.write(basicRun(searchParameter,_model));
+			}
+			System.out.println("Done");
+			fw.close();
+		}
+		/*		else {
+			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
+
+			for(int i=0;i<url.length;i++){
+				String db = "http://demo.openlinksw.com/sparql";
+				OntModel m = ModelFactory.createOntologyModel();
+//				m.removeAll();
 				m.read(url[i], "TURTLE");
 
 				String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
@@ -51,28 +79,92 @@ public class SearchServlet extends HttpServlet {
 						"WHERE {"+
 						"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; "
 						+ "edu:courseDescription ?desc.\n" +
-						"FILTER regex(?desc , \""+searchParameter+"\", \"i\")\n" +
+						"FILTER regex(?name , \""+searchParameter+"\", \"i\")\n" +
 						"}";
 				//				System.out.println(queryString);
 				Query query = QueryFactory.create(queryString) ;
 				QueryExecution qexec = QueryExecutionFactory.sparqlService(db, query);
 				ResultSet rs = qexec.execSelect();
 				while(rs.hasNext()){
+					HashMap<String, String> j = new HashMap<String, String>();
+					Gson gson = new Gson();
 					QuerySolution qs = rs.nextSolution();
 					Literal name = qs.getLiteral("name");
 					Literal courseProvider = qs.getLiteral("courseProvider");
 					Literal courseLink = qs.getLiteral("courseLink");
 					Literal desc = qs.getLiteral("desc");
-					System.out.println(name + "\n" + courseLink + "\n" + courseProvider + "\n" + desc +"\n\n");
+					j.put("name", name.toString());
+					j.put("courseProvider", courseProvider.toString());
+					j.put("courseLink", courseLink.toString());
+					j.put("desc", desc.toString());
+					String json = gson.toJson(j);
+					System.out.println(json+"\n");
+					try {
+						fw.write(json+"\n");
+
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+//					System.out.println(name + "\n" + courseLink + "\n" + courseProvider + "\n" + desc +"\n\n");
 					//					System.out.println(qs.get("courseProvider"));
 					//					System.out.println(qs.get("courseLink"));
 					//					System.out.println(qs.get("desc"));
 				}
+				db=null;
+				rs=null;
 				qexec.close();
 				m.close();
 			}
-
+			try {
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("Done");
 			return;
+		}*/
+	}
+	private String basicRun(String parameter,Model _model) {
+		return runQuery(parameter,_model);
+
+	}
+	private String runQuery(String parameter, Model _model2) {
+		String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
+				"SELECT DISTINCT ?name ?courseProvider ?courseLink ?desc\n" +
+				"WHERE {"+
+				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; "
+				+ "edu:courseDescription ?desc.\n" +
+				"FILTER regex(?name ,\""+parameter+"\", \"i\")\n" +
+				"}";
+		String json="";
+		Query query = QueryFactory.create(queryString.toString());
+		QueryExecution queryExecution = QueryExecutionFactory.create(query,_model2);
+		try{
+			ResultSet response = queryExecution.execSelect();
+
+			while( response.hasNext())
+			{
+				HashMap<String, String> j = new HashMap<String, String>();
+				Gson gson = new Gson();
+				QuerySolution soln = response.nextSolution();
+				RDFNode name = soln.get("?name");
+				RDFNode courseProvider = soln.get("?courseProvider");
+				RDFNode courseLink = soln.get("?courseLink");
+				RDFNode desc = soln.get("?desc");
+				j.put("name", name.toString());
+				j.put("courseProvider", courseProvider.toString());
+				j.put("courseLink", courseLink.toString());
+				j.put("desc", desc.toString());
+				json += "\n"+gson.toJson(j);
+			}
+			
 		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		queryExecution.close();
+		return json;
 	}
 }
