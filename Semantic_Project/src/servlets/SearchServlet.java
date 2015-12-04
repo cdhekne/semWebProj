@@ -206,14 +206,14 @@ public class SearchServlet extends HttpServlet {
 	}
 	private String runQuery(String searchBy,String searchParameter, Model _model2) {
 		String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
-				"SELECT ?name ?courseProvider ?courseLink ?desc\n" +
+				"SELECT ?name ?courseProvider ?courseLink ?desc ?price \n" +
 				"WHERE {"+
 				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; \n"
 				+ "edu:courseDescription ?desc.\n" +
 				"OPTIONAL{\n"+
-				"?course edu:courseDuration ?duration.\n"+
+				/*"?course edu:courseDuration ?duration.\n"+
 				"?course edu:courseType ?type.\n"+
-				"?course edu:teacherName ?tname.\n"+
+				"?course edu:teacherName ?tname.\n"+*/
 				"?course edu:coursePricing ?price.\n"+
 				"}\n"+
 				"FILTER regex(?"+searchBy+" ,\""+searchParameter+"\", \"i\")\n" +
