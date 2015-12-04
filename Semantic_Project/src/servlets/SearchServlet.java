@@ -206,16 +206,16 @@ public class SearchServlet extends HttpServlet {
 	}
 	private String runQuery(String searchBy,String searchParameter, Model _model2) {
 		String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
-				"SELECT ?name ?courseProvider ?courseLink ?desc ?price \n" +
+				"SELECT ?name ?courseProvider ?courseLink ?desc ?price ?type ?teacherName ?categoryName ?topicName ?duration \n" +
 				"WHERE {"+
 				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; \n"
 				+ "edu:courseDescription ?desc.\n" +
-				"OPTIONAL{\n"+
-				/*"?course edu:courseDuration ?duration.\n"+
-				"?course edu:courseType ?type.\n"+
-				"?course edu:teacherName ?tname.\n"+*/
-				"?course edu:coursePricing ?price.\n"+
-				"}\n"+
+				"OPTIONAL{?course edu:coursePricing ?price.}"+
+				"OPTIONAL{  ?teacher edu:teaches ?course ; edu:teacherName ?teacherName .}"+
+				"OPTIONAL{  ?category edu:includesCourse ?course ; edu:categoryName ?categoryName. }"+
+				"OPTIONAL{  ?syllabus edu:belongsToCourse ?course ; edu:topics ?topicName. }  "+
+				"OPTIONAL{ ?course edu:courseType ?type.}"+
+				"OPTIONAL{ ?course edu:courseDuration ?duration.}"+
 				"FILTER regex(?"+searchBy+" ,\""+searchParameter+"\", \"i\")\n" +
 				"}";
 		String json="";
@@ -238,11 +238,14 @@ public class SearchServlet extends HttpServlet {
 				RDFNode courseType = soln.get("?type");
 				RDFNode teacherName = soln.get("?tname");
 				RDFNode price = soln.get("?price");
+				RDFNode topicName = soln.get("?topicName");
+				RDFNode categoryName = soln.get("?categoryName");
 				
 				j.put("name", name.toString());
 				j.put("courseProvider", courseProvider.toString());
 				j.put("courseLink", courseLink.toString());
 				j.put("desc", desc.toString());
+				
 				
 				if(courseDuration==null)
 					j.put("duration", "-");
@@ -260,6 +263,14 @@ public class SearchServlet extends HttpServlet {
 					j.put("price", "-");
 				else
 					j.put("price", price.toString());
+				if(topicName==null)
+					j.put("topicName", "-");
+				else
+					j.put("topicName", topicName.toString());
+				if(categoryName==null)
+					j.put("categoryName", "-");
+				else
+					j.put("categoryName", categoryName.toString());
 
 				json += "\n"+gson.toJson(j);
 			}
