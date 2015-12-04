@@ -20,6 +20,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 /**
  * Servlet implementation class SearchServlet
@@ -60,17 +61,26 @@ public class SearchServlet extends HttpServlet {
 			return;
 		}
 		else{
+			String jsonOutput="";
+			JsonObject json = new JsonObject();
 			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
 			for(int i=0;i<url.length;i++){
 				loadData(url[i]);
 				if(searchBy.equals("price")==true){
 					fw.write(runQueryForFreeCourses(searchBy,searchParameter,_model));
+					jsonOutput= runQueryForFreeCourses(searchBy,searchParameter,_model);
 				}
-				else
+				else{
 					fw.write(basicRun(searchBy,searchParameter,_model));
+					jsonOutput = basicRun(searchBy,searchParameter,_model);
+				}
 			}
-			System.out.println("Done");
 			fw.close();
+			response.setContentType("application/json");
+			response.setCharacterEncoding("UTF-8");
+			response.getWriter().write(new Gson().toJson(jsonOutput)); 
+			System.out.println("Done");
+			
 		}
 		/*		else {
 			FileWriter fw= new FileWriter("C:\\Users\\Chinmay\\git\\semWebProj\\Semantic_Project\\Files\\outputJson.json");
@@ -196,10 +206,16 @@ public class SearchServlet extends HttpServlet {
 	}
 	private String runQuery(String searchBy,String searchParameter, Model _model2) {
 		String queryString = "PREFIX edu: <http://www.semanticweb.org/cdhekne/ontologies/2015/10/untitled-ontology-8#>\n" +
-				"SELECT DISTINCT ?name ?courseProvider ?courseLink ?desc\n" +
+				"SELECT ?name ?courseProvider ?courseLink ?desc\n" +
 				"WHERE {"+
-				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; "
+				"?course edu:courseName ?name ; edu:courseProvider ?courseProvider ; edu:courseLink ?courseLink ; \n"
 				+ "edu:courseDescription ?desc.\n" +
+				"OPTIONAL{\n"+
+				"?course edu:courseDuration ?duration.\n"+
+				"?course edu:courseType ?type.\n"+
+				"?course edu:teacherName ?tname.\n"+
+				"?course edu:coursePricing ?price.\n"+
+				"}\n"+
 				"FILTER regex(?"+searchBy+" ,\""+searchParameter+"\", \"i\")\n" +
 				"}";
 		String json="";
@@ -217,10 +233,34 @@ public class SearchServlet extends HttpServlet {
 				RDFNode courseProvider = soln.get("?courseProvider");
 				RDFNode courseLink = soln.get("?courseLink");
 				RDFNode desc = soln.get("?desc");
+				
+				RDFNode courseDuration = soln.get("?duration");
+				RDFNode courseType = soln.get("?type");
+				RDFNode teacherName = soln.get("?tname");
+				RDFNode price = soln.get("?price");
+				
 				j.put("name", name.toString());
 				j.put("courseProvider", courseProvider.toString());
 				j.put("courseLink", courseLink.toString());
 				j.put("desc", desc.toString());
+				
+				if(courseDuration==null)
+					j.put("duration", "-");
+				else
+					j.put("duration", courseDuration.toString());
+				if(courseType==null)
+					j.put("type", "-");
+				else
+					j.put("type", courseType.toString());
+				if(teacherName==null)
+					j.put("tname", "-");
+				else
+					j.put("tname", teacherName.toString());
+				if(price==null)
+					j.put("price", "-");
+				else
+					j.put("price", price.toString());
+
 				json += "\n"+gson.toJson(j);
 			}
 
